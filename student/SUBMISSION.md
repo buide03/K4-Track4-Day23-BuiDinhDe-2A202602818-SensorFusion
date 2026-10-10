@@ -207,12 +207,32 @@ Liệt kê phần bonus đã làm, file bằng chứng trong `student/bonus/` v�
   - Trong lab, matches/ghost/miss gần như không đổi ở mọi mức vì vòng đời track chỉ do LiDAR quyết định;
     lỗi calibration chủ yếu thể hiện qua RMSE.
 
+- **Trực quan hoá track và đo trên BEV (+3).** Script: `student/bonus/visualize_tracks.py`. Script phát lại vòng lặp
+  tracking của `run_lab.run` (lidar-only và fused, calibration gốc, seed 0) trên cùng cache detection của bonus calibration
+  và ghi lại state/covariance trước và sau mỗi camera update. Ảnh nằm trong `student/bonus/`:
+  - `bev_overview.png`: frame 99, gồm GT (ô vuông), đo LiDAR (×), track confirmed của hai mode (cam = lidar-only,
+    xanh = fused) kèm ellipse 2σ, và FOV camera FRONT (chấm tím). Ba xe ID 0, 1, 10 đều được bám ở cả hai mode
+    (đúng với `ghost_track_frames = 0`). Ellipse chỉ rộng ~0.2 m nên có ô phóng to quanh ID 0: ellipse lidar-only
+    gần tròn, còn ellipse fused hẹp lại theo phương ngang.
+  - `camera_update_effect.png`: **tác dụng của một camera update** lên track ID 0 ở frame 99 (track có nhiều camera
+    update nhất; frame được chọn là lần update ở giữa chuỗi, không chọn frame đẹp nhất). Sau update LiDAR,
+    state nằm ngay trên đo LiDAR với ellipse gần tròn (σx = σy ≈ 9.9 cm). Camera update dịch state 14.9 cm về phía
+    tia chiếu ngược của pixel đo (u = 529.5), lỗi XY tới GT giảm từ 16.0 xuống 11.8 cm. σy giảm từ 9.9 xuống 4.9 cm,
+    còn σx (gần như dọc theo tia, tức độ sâu) chỉ giảm từ 9.9 xuống 9.7 cm. Ellipse posterior dài ra **dọc theo tia camera**:
+    camera ràng buộc vị trí theo hướng vuông góc với tia nhưng không đo được độ sâu. Đây chính là cấu trúc của
+    Jacobian `H` 2×6 (một pixel tương ứng với cả một tia).
+  - `track_error_timeline.png`: cùng track ID 0 qua frame 0–198. Lỗi XY tới GT gần nhất trung bình là 13.3 cm (lidar-only)
+    so với 12.7 cm (fused). Fused không tốt hơn ở mọi frame: frame 0–45 fused hơi tệ hơn (12.2 → 13.7 cm), frame 75–110 tốt hơn rõ (18.7 → 12.4 cm).
+    σy cuối frame của fused ổn định ở ~4–5 cm so với ~9.9 cm của lidar-only, vì track này có camera update ở cả 199 frame.
+    Lưu ý: σ nhỏ hơn không đồng nghĩa với lỗi nhỏ hơn tương ứng; innovation camera có bias (xem bảng calibration ở trên),
+    nên filter fused "tự tin" hơn mức thực tế.
+
 ## Khai báo sử dụng AI (bắt buộc)
 
 Ghi rõ, kể cả khi không dùng ("Không dùng AI"). Xem [RULES.md](../RULES.md) mục 2.
 
 - Công cụ đã dùng (ChatGPT, Copilot, Claude, …): Claude Code (Claude, Anthropic).
-- Dùng cho phần nào (hàm, câu hỏi, debug): giải thích toán EKF, gating χ², mô hình pinhole và vòng đời track; cùng viết code Part E–H (`kalman.py`, `camera_fusion.py`, `association.py`, `track_management.py`); debug lỗi `float()` trên ma trận 1×1 ở `mahalanobis_distance`; kiểm tra invariant của artifact; điền phần số liệu từ `metrics.json`; **soạn nháp 6 câu trả lời Parts E–H và đoạn giải thích khác biệt hai mode**; bonus calibration: viết script `student/bonus/calibration_study.py`, chạy thí nghiệm và soạn nháp bảng + nhận xét từ `calibration_study.json`. Tôi đã đọc, đối chiếu với code/log và chịu trách nhiệm giải thích.
+- Dùng cho phần nào (hàm, câu hỏi, debug): giải thích toán EKF, gating χ², mô hình pinhole và vòng đời track; cùng viết code Part E–H (`kalman.py`, `camera_fusion.py`, `association.py`, `track_management.py`); debug lỗi `float()` trên ma trận 1×1 ở `mahalanobis_distance`; kiểm tra invariant của artifact; điền phần số liệu từ `metrics.json`; **soạn nháp 6 câu trả lời Parts E–H và đoạn giải thích khác biệt hai mode**; bonus calibration: viết script `student/bonus/calibration_study.py`, chạy thí nghiệm và soạn nháp bảng + nhận xét từ `calibration_study.json`; bonus trực quan hoá: viết script `student/bonus/visualize_tracks.py`, tạo 3 ảnh BEV và soạn nháp chú thích. Tôi đã đọc, đối chiếu với code/log và chịu trách nhiệm giải thích.
 - Cách bạn đã kiểm tra lại (pytest, chạy Waymo, đối chiếu công thức): `pytest student/tests -q` (128 passed); chạy `fusion-run-lab --fusion compare --seed 0` trên frame 0–198; đối chiếu số trong báo cáo với `metrics.json` và `grade_run.log`; đối chiếu công thức với `docs/HUONG_DAN_KY_THUAT.md` và tính lại các ví dụ số trong test; bonus: kiểm tra mức lệch 0° tái tạo đúng `metrics_lidar.json`/`metrics_fused.json`, rồi chạy lại lệnh chấm chính thức sau thí nghiệm.
 
 ## Checklist nộp
