@@ -4,9 +4,9 @@
 
 ## Thông tin học viên
 
-- Họ tên:
-- MSSV:
-- Email:
+- Họ tên: Bui Dinh De
+- MSSV: 2A202602818
+- Email: buidinhde2003tkk@gmail.com
 - Link repo (fork):
 - Commit hash nộp (`git rev-parse HEAD`):
 
